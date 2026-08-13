@@ -1,0 +1,20 @@
+{
+  "name": "dev-questionnaire-lab",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Hands-on, build-it-yourself study lab for the front-end developer questionnaire. Live JS + React playgrounds, explanations, and self-quizzes for every question.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
+    "vite": "^7.3.6"
+  }
+}
