@@ -99,3 +99,11 @@ the surface it lands on. It must exit 0 before you commit a stylesheet change:
 ```bash
 python3 tools/contrast-audit.py src/styles.css
 ```
+
+## Deploy to GitHub Pages
+
+A workflow at `.github/workflows/deploy.yml` builds and publishes on every push to `master`. In the repo, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. The site is then served at `https://<user>.github.io/dev-questionnaire-lab/`.
+
+GitHub Pages serves a project site from `https://<user>.github.io/<repo>/`, so the build sets Vite's `base` to that subpath. The repo name comes from `GITHUB_REPOSITORY` in Actions. Set `BASE_PATH` to override it — use `BASE_PATH=/` for a custom domain.
+
+The React playground compiles student-written JSX in the browser using Babel, loaded from a CDN in `index.html`. The deployed site depends on that CDN staying reachable.
