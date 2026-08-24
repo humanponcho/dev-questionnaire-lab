@@ -3,6 +3,23 @@ import * as React from 'react'
 import { createRoot } from 'react-dom/client'
 
 /**
+ * Babel standalone is a bundled dependency, not a CDN script — the app must not
+ * stop working because a third-party host is slow or blocked.
+ *
+ * It is also ~3 MB minified, an order of magnitude larger than everything else
+ * here. A static import would put that in the main bundle and make every reader
+ * download a JSX compiler to read a paragraph of prose. This dynamic import
+ * makes Vite emit it as its own chunk, fetched the first time someone actually
+ * presses Render. The promise is cached at module scope so later playgrounds on
+ * the same page reuse it.
+ */
+let babelPromise = null
+function loadBabel() {
+  if (!babelPromise) babelPromise = import('@babel/standalone')
+  return babelPromise
+}
+
+/**
  * A live React playground. The student writes a component and we compile the
  * JSX in-browser with Babel standalone, then mount it into an isolated root.
  * The code must define a component named `App` (default export style not needed).
@@ -23,34 +40,51 @@ export default function ReactPlayground({ name = 'App.jsx', initial = '', height
 
   useEffect(() => {
     if (runKey === 0) return
-    let root = rootRef.current
-    try {
-      const compiled = window.Babel.transform(code, {
-        presets: ['react'],
-      }).code
+    let cancelled = false
 
-      // Expose React + hooks to the compiled code via a Function scope.
-      const factory = new Function(
-        'React', 'useState', 'useEffect', 'useRef', 'useReducer',
-        'useCallback', 'useMemo', 'useContext', 'createContext',
-        `${compiled}\n; return typeof App !== 'undefined' ? App : null;`
-      )
-      const App = factory(
-        React, React.useState, React.useEffect, React.useRef, React.useReducer,
-        React.useCallback, React.useMemo, React.useContext, React.createContext
-      )
-      if (!App) {
-        setError('Define a component called `App` — that is what gets rendered.')
+    ;(async () => {
+      let Babel
+      try {
+        const mod = await loadBabel()
+        // The UMD build interops as either the namespace or its default.
+        Babel = typeof mod.transform === 'function' ? mod : mod.default
+      } catch {
+        if (!cancelled) setError('Could not load the JSX compiler. Reload the page and try again.')
         return
       }
-      if (!root) {
-        root = createRoot(mountRef.current)
-        rootRef.current = root
+      if (cancelled) return
+
+      let root = rootRef.current
+      try {
+        const compiled = Babel.transform(code, {
+          presets: ['react'],
+        }).code
+
+        // Expose React + hooks to the compiled code via a Function scope.
+        const factory = new Function(
+          'React', 'useState', 'useEffect', 'useRef', 'useReducer',
+          'useCallback', 'useMemo', 'useContext', 'createContext',
+          `${compiled}\n; return typeof App !== 'undefined' ? App : null;`
+        )
+        const App = factory(
+          React, React.useState, React.useEffect, React.useRef, React.useReducer,
+          React.useCallback, React.useMemo, React.useContext, React.createContext
+        )
+        if (!App) {
+          setError('Define a component called `App` — that is what gets rendered.')
+          return
+        }
+        if (!root) {
+          root = createRoot(mountRef.current)
+          rootRef.current = root
+        }
+        root.render(React.createElement(App))
+      } catch (err) {
+        setError(`${err.name}: ${err.message}`)
       }
-      root.render(React.createElement(App))
-    } catch (err) {
-      setError(`${err.name}: ${err.message}`)
-    }
+    })()
+
+    return () => { cancelled = true }
   }, [runKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => {

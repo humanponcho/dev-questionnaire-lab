@@ -106,4 +106,6 @@ A workflow at `.github/workflows/deploy.yml` builds and publishes on every push 
 
 GitHub Pages serves a project site from `https://<user>.github.io/<repo>/`, so the build sets Vite's `base` to that subpath. The repo name comes from `GITHUB_REPOSITORY` in Actions. Set `BASE_PATH` to override it — use `BASE_PATH=/` for a custom domain.
 
-The React playground compiles student-written JSX in the browser using Babel, loaded from a CDN in `index.html`. The deployed site depends on that CDN staying reachable.
+The React playground compiles student-written JSX in the browser using `@babel/standalone`, which is a bundled dependency — the app does not depend on a third-party CDN.
+
+Babel is around 3 MB minified, so `ReactPlayground.jsx` pulls it in with a dynamic `import()`. Vite emits it as its own chunk, fetched the first time someone presses **Render**. Readers who never open a React playground never download it.
